@@ -49,6 +49,12 @@ PUBLIC_BOT_COMMANDS: tuple[LocalizedBotCommand, ...] = (
     ),
     LocalizedBotCommand("topic_del", "Удалить виртуальный топик", "Delete a virtual topic"),
     LocalizedBotCommand("topic_off", "Выключить активный топик", "Clear active topic"),
+    LocalizedBotCommand(
+        "topic_cwd",
+        "Привязать активный топик к папке",
+        "Bind active topic to a folder",
+    ),
+    LocalizedBotCommand("topic_info", "Показать настройки топика", "Show topic settings"),
     LocalizedBotCommand("current", "Показать активный топик", "Show active topic"),
     LocalizedBotCommand(
         "tail",

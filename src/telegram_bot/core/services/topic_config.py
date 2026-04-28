@@ -491,3 +491,87 @@ class TopicConfig:
             values={"engine": engine, "model": normalized, "exec_mode": exec_mode},
             log_label="update_engine_model_exec_mode",
         )
+
+    async def update_cwd(self, thread_id: int, cwd: str | None) -> bool:
+        """Persist a new cwd for one topic.
+
+        `cwd` must be absolute and point to an existing directory, or be `None`
+        to fall back to ``Settings.default_cwd``. Relative paths and missing
+        directories are rejected up-front so an invalid value never makes it
+        into topic_config.json (where the loader would silently drop it back
+        to ``None`` and surprise the user).
+        """
+        if cwd is not None:
+            if not isinstance(cwd, str):
+                return False
+            if not os.path.isabs(cwd):
+                logger.warning("update_cwd: refused relative path %r", cwd)
+                return False
+            if not os.path.isdir(cwd):
+                logger.warning("update_cwd: directory does not exist %r", cwd)
+                return False
+        return await self._update_topic_field(
+            thread_id=thread_id,
+            field_name="cwd",
+            value=cwd,
+            log_label="update_cwd",
+        )
+
+    async def initialize_topic(
+        self,
+        thread_id: int,
+        *,
+        name: str,
+        cwd: str | None,
+        topic_type: str = "project",
+        mode: str = "free",
+        stream_mode: StreamMode = _DEFAULT_STREAM_MODE,
+        exec_mode: str = _DEFAULT_EXEC_MODE,
+        engine: Engine = _DEFAULT_ENGINE,
+        model: str | None = None,
+        mcp_config: str | None = None,
+    ) -> bool:
+        """Persist a fresh topic record with all fields in one atomic write.
+
+        Used by ``/topic_new <name> [path]`` so a new virtual slot lands in
+        topic_config.json fully populated rather than relying on the lazy
+        defaults in ``_default_topic()``. Validates cwd / engine / exec_mode /
+        stream_mode / model / mode the same way the loader does.
+        """
+        if exec_mode not in _VALID_EXEC_MODES:
+            logger.warning("initialize_topic: invalid exec_mode %r", exec_mode)
+            return False
+        if engine not in _VALID_ENGINES:
+            logger.warning("initialize_topic: invalid engine %r", engine)
+            return False
+        if stream_mode not in _VALID_STREAM_MODES:
+            logger.warning("initialize_topic: invalid stream_mode %r", stream_mode)
+            return False
+        if mode not in _valid_modes():
+            logger.warning("initialize_topic: invalid prompt mode %r", mode)
+            return False
+        if cwd is not None and (
+            not isinstance(cwd, str) or not os.path.isabs(cwd) or not os.path.isdir(cwd)
+        ):
+            logger.warning("initialize_topic: invalid cwd %r", cwd)
+            return False
+        normalized_model = _normalize_model(model)
+        if isinstance(model, str) and model.strip() and normalized_model is None:
+            logger.warning("initialize_topic: invalid model %r", model)
+            return False
+
+        return await self._update_topic_fields(
+            thread_id=thread_id,
+            values={
+                "name": name,
+                "type": topic_type,
+                "mode": mode,
+                "cwd": cwd,
+                "mcp_config": mcp_config,
+                "stream_mode": stream_mode,
+                "exec_mode": exec_mode,
+                "engine": engine,
+                "model": normalized_model,
+            },
+            log_label="initialize_topic",
+        )

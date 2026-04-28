@@ -275,6 +275,23 @@ MESSAGES: dict[str, dict[str, str]] = {
         ),
         "ui.vt_off": "✅ Active topic cleared.",
         "ui.vt_already_off": "No active topic to clear.",
+        "ui.vt_created_with_cwd": (
+            "✅ Created and switched to <b>{name}</b>.\n"
+            "📁 cwd: <code>{cwd}</code>\n"
+            "Mode: tmux + Claude (opus). Send a message to spawn the session."
+        ),
+        "ui.vt_cwd_must_be_absolute": ("⚠️ Path must be absolute: <code>{path}</code>"),
+        "ui.vt_cwd_missing": ("⚠️ Directory does not exist: <code>{path}</code>"),
+        "ui.vt_cwd_set": ("✅ <b>{name}</b> bound to <code>{cwd}</code>."),
+        "ui.vt_usage_cwd": "Usage: <code>/topic_cwd &lt;absolute_path&gt;</code>",
+        "ui.vt_init_failed": "❌ Failed to write topic config — see bot log.",
+        "ui.vt_info": (
+            "🗂 <b>{name}</b>\n"
+            "📁 cwd: <code>{cwd}</code>\n"
+            "🤖 engine: <b>{engine}</b>  /  model: <code>{model}</code>\n"
+            "⚙️ exec_mode: <b>{exec_mode}</b>  /  stream: <b>{stream_mode}</b>\n"
+            "📝 prompt: <b>{prompt_mode}</b>"
+        ),
     },
     "ru": {
         # --- UI: user-facing status / error messages -------------------
@@ -490,6 +507,23 @@ MESSAGES: dict[str, dict[str, str]] = {
         ),
         "ui.vt_off": "✅ Активный топик очищен.",
         "ui.vt_already_off": "Активного топика и так нет.",
+        "ui.vt_created_with_cwd": (
+            "✅ Создан и активирован: <b>{name}</b>.\n"
+            "📁 cwd: <code>{cwd}</code>\n"
+            "Режим: tmux + Claude (opus). Пришли сообщение — поднимется сессия."
+        ),
+        "ui.vt_cwd_must_be_absolute": ("⚠️ Путь должен быть абсолютным: <code>{path}</code>"),
+        "ui.vt_cwd_missing": ("⚠️ Папки не существует: <code>{path}</code>"),
+        "ui.vt_cwd_set": ("✅ <b>{name}</b> привязан к <code>{cwd}</code>."),
+        "ui.vt_usage_cwd": "Использование: <code>/topic_cwd &lt;абсолютный_путь&gt;</code>",
+        "ui.vt_init_failed": "❌ Не удалось записать конфиг — смотри лог бота.",
+        "ui.vt_info": (
+            "🗂 <b>{name}</b>\n"
+            "📁 cwd: <code>{cwd}</code>\n"
+            "🤖 движок: <b>{engine}</b>  /  модель: <code>{model}</code>\n"
+            "⚙️ exec_mode: <b>{exec_mode}</b>  /  stream: <b>{stream_mode}</b>\n"
+            "📝 промпт: <b>{prompt_mode}</b>"
+        ),
     },
 }
 
