@@ -76,15 +76,23 @@ _MAX_REPLY_CONTEXT_LEN = 2000
 def resolve_reply_target(
     message: Message,
     session_manager: SessionManager,
+    current_channel: ChannelKey | None = None,
 ) -> str | None:
     """Resolve reply-to-resume target from message.reply_to_message.
 
     Returns target_session_id or None if no reply, no matching session,
     or if the replied-to message belongs to a different channel (cross-topic guard).
+
+    `current_channel` should be the resolved ChannelKey for the incoming
+    message — including any virtual-topic substitution. Callers that omit it
+    fall back to the bare `(chat_id, message_thread_id)` derived from the
+    aiogram message, which preserves legacy behaviour but skips the
+    virtual-topic match.
     """
     if message.reply_to_message is None:
         return None
-    current_channel = get_channel_key(message)
+    if current_channel is None:
+        current_channel = get_channel_key(message)
     return session_manager.resolve_reply_session(
         message.reply_to_message.message_id, current_channel
     )

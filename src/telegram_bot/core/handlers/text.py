@@ -20,8 +20,9 @@ from telegram_bot.core.services.message_queue import MessageQueue
 from telegram_bot.core.services.providers import engine_display_name
 from telegram_bot.core.services.tmux_manager import TmuxManager
 from telegram_bot.core.services.topic_config import TopicConfig
+from telegram_bot.core.services.virtual_topics import VirtualTopicsStore
 from telegram_bot.core.tui.routing import route_slash_command
-from telegram_bot.core.types import channel_key
+from telegram_bot.core.types import resolve_channel_key
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +37,7 @@ async def handle_text(
     message_queue: MessageQueue,
     tmux_manager: TmuxManager,
     topic_config: TopicConfig,
+    virtual_topics: VirtualTopicsStore,
     inbox_reply_handler: Callable[[Message, MessageQueue], Awaitable[bool]] | None = None,
 ) -> None:
     # User's own messages are trusted — no sanitize_forwarded_content() needed here.
@@ -44,7 +46,7 @@ async def handle_text(
     if not text.strip():
         return
 
-    key = channel_key(message)
+    key = resolve_channel_key(message, virtual_topics)
     logger.info(
         "MSG_TRACE handle_text channel=%s msg=%d text_len=%d user=%s",
         key,

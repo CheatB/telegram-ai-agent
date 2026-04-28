@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     session_mapping_max_size: int = 5000  # each interaction records multiple response chunks
     shutdown_timeout_sec: int = 7  # Gives the service manager time to stop cleanly.
     topic_config_path: str = "./topic_config.json"
+    virtual_topics_path: str = "./virtual_topics.json"
     notification_chat_id: int | None = None
     tmux_sessions_dir: str = "./tmux_sessions"
 

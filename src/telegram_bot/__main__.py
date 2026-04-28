@@ -22,6 +22,7 @@ from telegram_bot.core.handlers.photo import cleanup_old_tmp_files, ensure_tmp_d
 from telegram_bot.core.handlers.photo import router as photo_router
 from telegram_bot.core.handlers.streaming import send_streaming_response
 from telegram_bot.core.handlers.text import router as text_router
+from telegram_bot.core.handlers.virtual_topics import router as virtual_topics_router
 from telegram_bot.core.handlers.voice import router as voice_router
 from telegram_bot.core.keyboards import topic_keyboard
 from telegram_bot.core.messages import t
@@ -32,6 +33,7 @@ from telegram_bot.core.services.message_queue import MessageQueue
 from telegram_bot.core.services.tmux_manager import TmuxManager
 from telegram_bot.core.services.topic_config import TopicConfig
 from telegram_bot.core.services.transcriber import Transcriber
+from telegram_bot.core.services.virtual_topics import VirtualTopicsStore
 from telegram_bot.core.types import ChannelKey
 
 logger = logging.getLogger(__name__)
@@ -98,6 +100,7 @@ async def _start() -> None:
         logger.warning("Failed to set Telegram bot commands", exc_info=True)
 
     topic_config = TopicConfig(settings.topic_config_path, settings.project_root)
+    virtual_topics = VirtualTopicsStore(settings.virtual_topics_path)
     tmux_manager = TmuxManager(
         sessions_dir=Path(settings.project_root) / settings.tmux_sessions_dir,
     )
@@ -136,6 +139,7 @@ async def _start() -> None:
     # forum_topic_router runs first so topic_config.json is updated BEFORE
     # any text/forward handler tries to read mode/cwd for the new thread.
     dp.include_router(forum_topic_router)
+    dp.include_router(virtual_topics_router)
     dp.include_router(commands_router)
     dp.include_router(cancel_router)
     dp.include_router(mode_router)
@@ -151,6 +155,7 @@ async def _start() -> None:
     dp["queue"] = message_queue
     dp["settings"] = settings
     dp["topic_config"] = topic_config
+    dp["virtual_topics"] = virtual_topics
     dp["tmux_manager"] = tmux_manager
 
     ensure_tmp_dir(session_manager.file_cache_dir)

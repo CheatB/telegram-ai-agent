@@ -37,7 +37,8 @@ from telegram_bot.core.services.message_queue import MessageQueue
 from telegram_bot.core.services.tmux_manager import TmuxManager
 from telegram_bot.core.services.topic_config import TopicConfig
 from telegram_bot.core.services.transcriber import Transcriber
-from telegram_bot.core.types import channel_key
+from telegram_bot.core.services.virtual_topics import VirtualTopicsStore
+from telegram_bot.core.types import resolve_channel_key
 
 logger = logging.getLogger(__name__)
 
@@ -75,9 +76,10 @@ async def handle_forward(
     message_queue: MessageQueue,
     tmux_manager: TmuxManager,
     topic_config: TopicConfig,
+    virtual_topics: VirtualTopicsStore,
 ) -> None:
     """Handle forwarded messages: collect into batch, process media, enqueue to MessageQueue."""
-    key = channel_key(message)
+    key = resolve_channel_key(message, virtual_topics)
     logger.info("Forward message in %s", key)
 
     async def on_batch(raw_messages: list[Message]) -> None:

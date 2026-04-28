@@ -49,7 +49,8 @@ from telegram_bot.core.services.topic_config import (
     TopicConfig,
 )
 from telegram_bot.core.services.topic_runtime import BotDefaults, resolve_topic_runtime_config
-from telegram_bot.core.types import ChannelKey, channel_key
+from telegram_bot.core.services.virtual_topics import VirtualTopicsStore
+from telegram_bot.core.types import ChannelKey, resolve_channel_key
 from telegram_bot.core.utils.telegram_html import split_html_message
 
 logger = logging.getLogger(__name__)
@@ -70,6 +71,31 @@ def _exec_mode_label(mode: str) -> str:
 
 def _exec_mode_picker_caption(mode: str) -> str:
     return t("ui.exec_mode_picker_caption", current=_exec_mode_label(mode))
+
+
+def _resolve_callback_thread_id(
+    callback: CallbackQuery,
+    virtual_topics: VirtualTopicsStore | None,
+) -> int | None:
+    """Pick the right thread_id for a callback, including virtual-slot resolution.
+
+    Returns None if the callback message is unreachable or the user has no
+    active topic context (forum thread or virtual slot) — the caller should
+    surface a ``not_in_forum`` alert in that case.
+    """
+    msg = callback.message
+    if msg is None or isinstance(msg, InaccessibleMessage):
+        return None
+    thread_id = msg.message_thread_id
+    if thread_id is not None:
+        return thread_id
+    if (
+        virtual_topics is not None
+        and getattr(msg.chat, "type", None) == ChatType.PRIVATE
+        and callback.from_user is not None
+    ):
+        return virtual_topics.current_thread_id(callback.from_user.id)
+    return None
 
 
 router = Router(name="commands")
@@ -218,8 +244,9 @@ async def handle_new(
     forward_batcher: ForwardBatcher,
     tmux_manager: TmuxManager,
     topic_config: TopicConfig,
+    virtual_topics: VirtualTopicsStore | None = None,
 ) -> None:
-    key = channel_key(message)
+    key = resolve_channel_key(message, virtual_topics)
     logger.debug("User %s requested new session", message.from_user and message.from_user.id)
     await _reset_channel(
         message, key, session_manager, message_queue, forward_batcher, tmux_manager, topic_config
@@ -234,8 +261,9 @@ async def handle_clear(
     forward_batcher: ForwardBatcher,
     tmux_manager: TmuxManager,
     topic_config: TopicConfig,
+    virtual_topics: VirtualTopicsStore | None = None,
 ) -> None:
-    key = channel_key(message)
+    key = resolve_channel_key(message, virtual_topics)
     logger.debug("User %s requested clear", message.from_user and message.from_user.id)
     await _reset_channel(
         message, key, session_manager, message_queue, forward_batcher, tmux_manager, topic_config
@@ -248,8 +276,9 @@ async def handle_cancel_command(
     session_manager: SessionManager,
     message_queue: MessageQueue,
     tmux_manager: TmuxManager,
+    virtual_topics: VirtualTopicsStore | None = None,
 ) -> None:
-    key = channel_key(message)
+    key = resolve_channel_key(message, virtual_topics)
     tmux_acted = tmux_manager.is_active(key)
     if tmux_acted:
         await tmux_manager.cancel(key)
@@ -262,9 +291,13 @@ async def handle_cancel_command(
 
 
 @router.message(Command("kill"))
-async def handle_kill(message: Message, tmux_manager: TmuxManager) -> None:
+async def handle_kill(
+    message: Message,
+    tmux_manager: TmuxManager,
+    virtual_topics: VirtualTopicsStore | None = None,
+) -> None:
     """Kill the tmux session in the current topic."""
-    key = channel_key(message)
+    key = resolve_channel_key(message, virtual_topics)
     if not tmux_manager.is_active(key):
         await message.answer(t("ui.tmux_not_active"))
         return
@@ -283,9 +316,10 @@ async def handle_resume(
     tmux_manager: TmuxManager,
     picker_store: PickerStore,
     bot_defaults: BotDefaults,
+    virtual_topics: VirtualTopicsStore | None = None,
 ) -> None:
     """Open server-side picker with resumable Claude/Codex sessions."""
-    key = channel_key(message)
+    key = resolve_channel_key(message, virtual_topics)
     if key[1] is None:
         await message.answer(t("ui.resume_not_in_forum"))
         return
@@ -326,10 +360,21 @@ async def handle_resume(
     )
 
 
-def _callback_key(callback: CallbackQuery) -> ChannelKey | None:
+def _callback_key(
+    callback: CallbackQuery,
+    virtual_topics: VirtualTopicsStore | None = None,
+) -> ChannelKey | None:
     if callback.message is None or isinstance(callback.message, InaccessibleMessage):
         return None
-    return (callback.message.chat.id, callback.message.message_thread_id)
+    thread_id = callback.message.message_thread_id
+    if (
+        thread_id is None
+        and virtual_topics is not None
+        and getattr(callback.message.chat, "type", None) == ChatType.PRIVATE
+        and callback.from_user is not None
+    ):
+        thread_id = virtual_topics.current_thread_id(callback.from_user.id)
+    return (callback.message.chat.id, thread_id)
 
 
 async def _stale_resume_picker(callback: CallbackQuery) -> None:
@@ -390,6 +435,7 @@ async def on_resume_page(
     callback: CallbackQuery,
     picker_store: PickerStore,
     tmux_manager: TmuxManager,
+    virtual_topics: VirtualTopicsStore | None = None,
 ) -> None:
     if callback.data is None or callback.message is None:
         await callback.answer()
@@ -403,7 +449,7 @@ async def on_resume_page(
         return
     _, _, token, raw_page = parts
     state = picker_store.get(token)
-    key = _callback_key(callback)
+    key = _callback_key(callback, virtual_topics)
     if state is None or key != (state.chat_id, state.thread_id):
         await _stale_resume_picker(callback)
         return
@@ -445,6 +491,7 @@ async def on_resume_pick(
     tmux_manager: TmuxManager,
     picker_store: PickerStore,
     bot_defaults: BotDefaults,
+    virtual_topics: VirtualTopicsStore | None = None,
 ) -> None:
     if callback.data is None or callback.message is None:
         await callback.answer()
@@ -458,7 +505,7 @@ async def on_resume_pick(
         return
     _, _, token, raw_idx = parts
     state = picker_store.get(token)
-    key = _callback_key(callback)
+    key = _callback_key(callback, virtual_topics)
     if state is None or key != (state.chat_id, state.thread_id):
         await _stale_resume_picker(callback)
         return
@@ -530,9 +577,13 @@ async def on_resume_cancel(callback: CallbackQuery, picker_store: PickerStore) -
 
 
 @router.message(Command("stream"))
-async def handle_stream_mode(message: Message, topic_config: TopicConfig) -> None:
+async def handle_stream_mode(
+    message: Message,
+    topic_config: TopicConfig,
+    virtual_topics: VirtualTopicsStore | None = None,
+) -> None:
     """Show a 3-button picker to switch stream_mode for the current topic."""
-    _, thread_id = channel_key(message)
+    _, thread_id = resolve_channel_key(message, virtual_topics)
     if thread_id is None:
         await message.answer(t("ui.stream_mode_not_in_forum"))
         return
@@ -548,6 +599,7 @@ async def handle_stream_mode(message: Message, topic_config: TopicConfig) -> Non
 async def on_stream_mode_click(
     callback: CallbackQuery,
     topic_config: TopicConfig,
+    virtual_topics: VirtualTopicsStore | None = None,
 ) -> None:
     """Apply a new stream_mode for the topic the picker was posted in."""
     if callback.data is None or callback.message is None:
@@ -563,7 +615,7 @@ async def on_stream_mode_click(
         await callback.answer(t("ui.stream_mode_invalid"), show_alert=True)
         return
 
-    thread_id = callback.message.message_thread_id
+    thread_id = _resolve_callback_thread_id(callback, virtual_topics)
     if thread_id is None:
         await callback.answer(
             t("ui.stream_mode_not_in_forum"),
@@ -589,9 +641,13 @@ async def on_stream_mode_click(
 
 
 @router.message(Command("mode"))
-async def handle_mode_command(message: Message, topic_config: TopicConfig) -> None:
+async def handle_mode_command(
+    message: Message,
+    topic_config: TopicConfig,
+    virtual_topics: VirtualTopicsStore | None = None,
+) -> None:
     """Show a 2-button picker to switch exec_mode for the current topic."""
-    _, thread_id = channel_key(message)
+    _, thread_id = resolve_channel_key(message, virtual_topics)
     if thread_id is None:
         await message.answer(t("ui.exec_mode_not_in_forum"))
         return
@@ -609,6 +665,7 @@ async def on_exec_mode_click(
     topic_config: TopicConfig,
     tmux_manager: TmuxManager,
     message_queue: MessageQueue,
+    virtual_topics: VirtualTopicsStore | None = None,
 ) -> None:
     """Apply a new exec_mode for the topic the picker was posted in.
 
@@ -633,7 +690,7 @@ async def on_exec_mode_click(
         await callback.answer(t("ui.exec_mode_invalid"), show_alert=True)
         return
 
-    thread_id = callback.message.message_thread_id
+    thread_id = _resolve_callback_thread_id(callback, virtual_topics)
     if thread_id is None:
         await callback.answer(t("ui.exec_mode_not_in_forum"), show_alert=True)
         return
@@ -684,9 +741,13 @@ async def on_exec_mode_click(
 
 
 @router.message(Command("engine"))
-async def handle_engine_command(message: Message, topic_config: TopicConfig) -> None:
+async def handle_engine_command(
+    message: Message,
+    topic_config: TopicConfig,
+    virtual_topics: VirtualTopicsStore | None = None,
+) -> None:
     """Show provider engine picker for the current forum topic."""
-    _, thread_id = channel_key(message)
+    _, thread_id = resolve_channel_key(message, virtual_topics)
     if thread_id is None:
         await message.answer(t("ui.engine_not_in_forum"))
         return
@@ -708,6 +769,7 @@ async def on_engine_click(
     tmux_manager: TmuxManager,
     message_queue: MessageQueue,
     session_manager: SessionManager,
+    virtual_topics: VirtualTopicsStore | None = None,
 ) -> None:
     """Apply provider engine changes for the picker topic."""
     if callback.data is None or callback.message is None:
@@ -718,7 +780,7 @@ async def on_engine_click(
         return
 
     _, _, raw_value = callback.data.partition(":")
-    thread_id = callback.message.message_thread_id
+    thread_id = _resolve_callback_thread_id(callback, virtual_topics)
     if thread_id is None:
         await callback.answer(t("ui.engine_not_in_forum"), show_alert=True)
         return

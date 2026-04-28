@@ -5,31 +5,51 @@ from __future__ import annotations
 import logging
 
 from aiogram import F, Router
+from aiogram.enums import ChatType
 from aiogram.types import CallbackQuery, InaccessibleMessage, Message
 
 from telegram_bot.core.messages import t
 from telegram_bot.core.services.message_queue import MessageQueue
 from telegram_bot.core.services.tmux_manager import TmuxManager
-from telegram_bot.core.types import ChannelKey, channel_key
+from telegram_bot.core.services.virtual_topics import VirtualTopicsStore
+from telegram_bot.core.types import ChannelKey, resolve_channel_key
 
 logger = logging.getLogger(__name__)
 
 router = Router(name="cancel")
 
 
-def _callback_channel_key(message: Message | InaccessibleMessage) -> ChannelKey:
-    """Extract ChannelKey from a callback message.
+def _callback_channel_key(
+    message: Message | InaccessibleMessage,
+    user_id: int | None,
+    virtual_topics: VirtualTopicsStore | None,
+) -> ChannelKey:
+    """Extract ChannelKey from a callback message, resolving virtual slots in private chats.
 
-    Callback messages may be InaccessibleMessage (no message_thread_id).
-    Fall back to (chat_id, None) if attribute is missing.
+    Callback messages may be InaccessibleMessage (no message_thread_id) — we
+    fall back to (chat_id, None) and try to substitute the caller's active
+    virtual slot when the chat is private and a store is wired in.
     """
     thread_id = getattr(message, "message_thread_id", None)
-    return (message.chat.id, thread_id)
+    chat_id = message.chat.id
+    if (
+        thread_id is None
+        and virtual_topics is not None
+        and user_id is not None
+        and getattr(message.chat, "type", None) == ChatType.PRIVATE
+    ):
+        synthetic = virtual_topics.current_thread_id(user_id)
+        if synthetic is not None:
+            thread_id = synthetic
+    return (chat_id, thread_id)
 
 
 @router.callback_query(F.data == "cancel_cc")
 async def handle_cancel_cc(
-    callback: CallbackQuery, queue: MessageQueue, tmux_manager: TmuxManager
+    callback: CallbackQuery,
+    queue: MessageQueue,
+    tmux_manager: TmuxManager,
+    virtual_topics: VirtualTopicsStore | None = None,
 ) -> None:
     """Handle cancel button press: interrupt tmux CC or kill subprocess and clear queue."""
     message = callback.message
@@ -37,7 +57,11 @@ async def handle_cancel_cc(
         await callback.answer()
         return
 
-    key = _callback_channel_key(message)
+    key = _callback_channel_key(
+        message,
+        callback.from_user.id if callback.from_user is not None else None,
+        virtual_topics,
+    )
     tmux_acted = tmux_manager.is_active(key)
     if tmux_acted:
         await tmux_manager.cancel(key)
@@ -63,10 +87,13 @@ async def handle_cancel_cc(
 
 @router.message(F.text == t("ui.btn_cancel"))
 async def handle_cancel_text(
-    message: Message, queue: MessageQueue, tmux_manager: TmuxManager
+    message: Message,
+    queue: MessageQueue,
+    tmux_manager: TmuxManager,
+    virtual_topics: VirtualTopicsStore | None = None,
 ) -> None:
     """Handle reply keyboard cancel button: interrupt tmux CC or kill subprocess and clear queue."""
-    key = channel_key(message)
+    key = resolve_channel_key(message, virtual_topics)
     tmux_acted = tmux_manager.is_active(key)
     if tmux_acted:
         await tmux_manager.cancel(key)

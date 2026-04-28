@@ -22,7 +22,8 @@ from telegram_bot.core.services.message_queue import MessageQueue
 from telegram_bot.core.services.tmux_manager import TmuxManager
 from telegram_bot.core.services.topic_config import TopicConfig
 from telegram_bot.core.services.transcriber import Transcriber
-from telegram_bot.core.types import channel_key
+from telegram_bot.core.services.virtual_topics import VirtualTopicsStore
+from telegram_bot.core.types import resolve_channel_key
 
 if TYPE_CHECKING:
     from telegram_bot.core.handlers.forward import ForwardBatcher
@@ -42,9 +43,10 @@ async def handle_voice(
     message_queue: MessageQueue,
     tmux_manager: TmuxManager,
     topic_config: TopicConfig,
+    virtual_topics: VirtualTopicsStore,
     inbox_reply_handler: Callable[[Message, MessageQueue], Awaitable[bool]] | None = None,
 ) -> None:
-    key = channel_key(message)
+    key = resolve_channel_key(message, virtual_topics)
     logger.debug("Voice message from user %s", message.from_user and message.from_user.id)
 
     # Check file size before anything else
@@ -102,7 +104,7 @@ async def handle_voice(
         if await send_to_tmux_if_active(key, prompt, last_voice_msg, tmux_manager):
             return
 
-        target_session_id = resolve_reply_target(last_voice_msg, session_manager)
+        target_session_id = resolve_reply_target(last_voice_msg, session_manager, key)
         enqueue_prompt(
             key,
             prompt,

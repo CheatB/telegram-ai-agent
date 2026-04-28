@@ -14,7 +14,8 @@ from telegram_bot.core.services.claude import SessionManager
 from telegram_bot.core.services.message_queue import MessageQueue
 from telegram_bot.core.services.tmux_manager import TmuxManager
 from telegram_bot.core.services.topic_config import TopicConfig
-from telegram_bot.core.types import channel_key
+from telegram_bot.core.services.virtual_topics import VirtualTopicsStore
+from telegram_bot.core.types import resolve_channel_key
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +30,9 @@ async def handle_new_chat_button(
     forward_batcher: ForwardBatcher,
     tmux_manager: TmuxManager,
     topic_config: TopicConfig,
+    virtual_topics: VirtualTopicsStore,
 ) -> None:
-    key = channel_key(message)
+    key = resolve_channel_key(message, virtual_topics)
     logger.info("New chat (topic reset) for %s", key)
     await _reset_channel(
         message, key, session_manager, message_queue, forward_batcher, tmux_manager, topic_config

@@ -37,6 +37,7 @@ from telegram_bot.core.services.tmux_modal_watchdog import (
     AUDIT_SOURCE_USER_COMMAND,
     log_alert_audit,
 )
+from telegram_bot.core.services.virtual_topics import VirtualTopicsStore
 from telegram_bot.core.tui.capture import escape_pane_for_html
 from telegram_bot.core.tui.modal_alert import render_modal_idle_alert
 from telegram_bot.core.tui.tail_keyboard import (
@@ -45,7 +46,7 @@ from telegram_bot.core.tui.tail_keyboard import (
     build_tail_keyboard,
     parse_tail_callback,
 )
-from telegram_bot.core.types import ChannelKey, channel_key
+from telegram_bot.core.types import ChannelKey, resolve_channel_key
 
 logger = logging.getLogger(__name__)
 
@@ -133,20 +134,29 @@ def _resolve_session_name(tmux_manager: TmuxManager, key: ChannelKey) -> str | N
 
 
 @router.message(F.text == t("ui.btn_tui"))
-async def handle_tui_button(message: Message, tmux_manager: TmuxManager) -> None:
+async def handle_tui_button(
+    message: Message,
+    tmux_manager: TmuxManager,
+    virtual_topics: VirtualTopicsStore | None = None,
+) -> None:
     """Reply-button shortcut for /tui. Aliases the same entry point so the
     user can reach the TUI snapshot with one keyboard tap instead of
     typing `/tui`."""
     await _handle_tail_entry(
         message,
         tmux_manager,
+        virtual_topics=virtual_topics,
         audit_source=AUDIT_SOURCE_TUI_BUTTON,
         audit_reason="user_pressed_tui_button",
     )
 
 
 @router.message(Command("tui", "tail"))
-async def handle_tail_command(message: Message, tmux_manager: TmuxManager) -> None:
+async def handle_tail_command(
+    message: Message,
+    tmux_manager: TmuxManager,
+    virtual_topics: VirtualTopicsStore | None = None,
+) -> None:
     """Render a TUI snapshot with an inline navigation keyboard.
 
     Only fires in topics with a live tmux session. For subprocess topics or
@@ -155,6 +165,7 @@ async def handle_tail_command(message: Message, tmux_manager: TmuxManager) -> No
     await _handle_tail_entry(
         message,
         tmux_manager,
+        virtual_topics=virtual_topics,
         audit_source=AUDIT_SOURCE_USER_COMMAND,
         audit_reason="user_typed_/tui",
     )
@@ -164,6 +175,7 @@ async def _handle_tail_entry(
     message: Message,
     tmux_manager: TmuxManager,
     *,
+    virtual_topics: VirtualTopicsStore | None = None,
     audit_source: str,
     audit_reason: str,
 ) -> None:
@@ -173,7 +185,7 @@ async def _handle_tail_entry(
     `source` recorded in TUI_ALERT_AUDIT — the operator can see whether
     the panel came from a typed command or a reply-keyboard tap.
     """
-    key = channel_key(message)
+    key = resolve_channel_key(message, virtual_topics)
     if not tmux_manager.is_active(key):
         await message.answer(t("ui.tail_unavailable"))
         return

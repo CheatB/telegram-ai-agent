@@ -91,7 +91,10 @@ MESSAGES: dict[str, dict[str, str]] = {
         "ui.exec_mode_already": "Already: {mode}",
         "ui.exec_mode_busy": "Processing in progress, hit /cancel first",
         "ui.exec_mode_invalid": "Invalid mode",
-        "ui.exec_mode_not_in_forum": "⚠️ /mode works only in forum topics",
+        "ui.exec_mode_not_in_forum": (
+            "⚠️ /mode needs an active topic. Use /topic_new &lt;name&gt; in this chat,"
+            " or run the command inside a forum topic."
+        ),
         "ui.exec_mode_write_failed": "Failed to save mode, try again",
         "ui.exec_mode_label_subprocess": "⚡ regular",
         "ui.exec_mode_label_tmux": "🖥 tmux",
@@ -106,7 +109,10 @@ MESSAGES: dict[str, dict[str, str]] = {
         ),
         "ui.engine_already": "Already selected",
         "ui.engine_invalid": "Invalid engine",
-        "ui.engine_not_in_forum": "⚠️ /engine works only in forum topics",
+        "ui.engine_not_in_forum": (
+            "⚠️ /engine needs an active topic. Use /topic_new &lt;name&gt; in this chat,"
+            " or run the command inside a forum topic."
+        ),
         "ui.engine_write_failed": "Failed to save engine settings",
         "ui.tmux_started_engine": "🖥 New tmux session started with {engine}",
         "ui.reply_engine_switched": (
@@ -120,7 +126,10 @@ MESSAGES: dict[str, dict[str, str]] = {
         ),
         "ui.stream_mode_changed": "Mode: {mode}",
         "ui.stream_mode_invalid": "Unknown mode",
-        "ui.stream_mode_not_in_forum": "⚠️ /stream works only in forum topics.",
+        "ui.stream_mode_not_in_forum": (
+            "⚠️ /stream needs an active topic. Use /topic_new &lt;name&gt; in this chat,"
+            " or run the command inside a forum topic."
+        ),
         "ui.stream_mode_write_failed": "Failed to save config",
         "ui.session_switched": "🔄 session: {sid}",
         "ui.session_switched_engine": "🔄 {engine} session: {sid}",
@@ -234,6 +243,38 @@ MESSAGES: dict[str, dict[str, str]] = {
         "tool.write_memory": "🧠 Updating memory",
         "tool.read_skill": "📋 Reading skill",
         "tool.write_skill": "📋 Updating skill",
+        # --- UI: virtual topics (private-chat per-project slots) ------
+        "ui.vt_only_in_private": (
+            "⚠️ Virtual topics live only in private chats."
+            " In a forum group use real Telegram topics."
+        ),
+        "ui.vt_list_empty": (
+            "🗂 No topics yet.\nCreate one with <code>/topic_new &lt;name&gt;</code>."
+        ),
+        "ui.vt_list_header": "🗂 Your topics:",
+        "ui.vt_list_active_marker": "✅",
+        "ui.vt_list_idle_marker": "▫️",
+        "ui.vt_current_active": "✅ Active topic: <b>{name}</b>",
+        "ui.vt_current_none": (
+            "No active topic. Use <code>/topic_new &lt;name&gt;</code>"
+            " or <code>/topic_switch &lt;name&gt;</code>."
+        ),
+        "ui.vt_invalid_name": ("⚠️ Bad name. Allowed: letters, digits, _ and -, 1..32 chars."),
+        "ui.vt_usage_new": "Usage: <code>/topic_new &lt;name&gt;</code>",
+        "ui.vt_usage_switch": "Usage: <code>/topic_switch &lt;name&gt;</code>",
+        "ui.vt_usage_del": "Usage: <code>/topic_del &lt;name&gt;</code>",
+        "ui.vt_already_exists": "⚠️ Topic <b>{name}</b> already exists.",
+        "ui.vt_created": "✅ Created and switched to <b>{name}</b>.",
+        "ui.vt_not_found": "⚠️ Topic <b>{name}</b> not found.",
+        "ui.vt_switched": "✅ Switched to <b>{name}</b>.",
+        "ui.vt_deleted": "🗑 Deleted <b>{name}</b>.",
+        "ui.vt_deleted_now_active": "🗑 Deleted <b>{name}</b>. Active now: <b>{active}</b>.",
+        "ui.vt_deleted_no_active": (
+            "🗑 Deleted <b>{name}</b>. No active topic —"
+            " use <code>/topic_new</code> or <code>/topic_switch</code>."
+        ),
+        "ui.vt_off": "✅ Active topic cleared.",
+        "ui.vt_already_off": "No active topic to clear.",
     },
     "ru": {
         # --- UI: user-facing status / error messages -------------------
@@ -307,7 +348,10 @@ MESSAGES: dict[str, dict[str, str]] = {
         "ui.exec_mode_already": "Уже: {mode}",
         "ui.exec_mode_busy": "Сейчас идёт обработка, нажми /cancel и повтори",
         "ui.exec_mode_invalid": "Неизвестный режим",
-        "ui.exec_mode_not_in_forum": "⚠️ /mode работает только в форум-топиках",
+        "ui.exec_mode_not_in_forum": (
+            "⚠️ /mode требует активный топик. Создай через /topic_new &lt;name&gt;"
+            " в этом чате или запусти команду внутри форум-топика."
+        ),
         "ui.exec_mode_write_failed": "Не удалось сохранить режим, попробуй ещё раз",
         "ui.exec_mode_label_subprocess": "⚡ обычный",
         "ui.exec_mode_label_tmux": "🖥 tmux",
@@ -321,7 +365,10 @@ MESSAGES: dict[str, dict[str, str]] = {
         ),
         "ui.engine_already": "Уже выбрано",
         "ui.engine_invalid": "Неизвестный движок",
-        "ui.engine_not_in_forum": "⚠️ /engine работает только внутри форум-топиков",
+        "ui.engine_not_in_forum": (
+            "⚠️ /engine требует активный топик. Создай через /topic_new &lt;name&gt;"
+            " в этом чате или запусти команду внутри форум-топика."
+        ),
         "ui.engine_write_failed": "Не удалось сохранить настройки движка",
         "ui.tmux_started_engine": "🖥 Создана новая tmux-сессия с {engine}",
         "ui.reply_engine_switched": ("↪️ Ответ ведёт в {engine}; переключаю топик перед resume."),
@@ -333,7 +380,10 @@ MESSAGES: dict[str, dict[str, str]] = {
         ),
         "ui.stream_mode_changed": "Режим: {mode}",
         "ui.stream_mode_invalid": "Неизвестный режим",
-        "ui.stream_mode_not_in_forum": "⚠️ /stream работает только внутри форум-топиков.",
+        "ui.stream_mode_not_in_forum": (
+            "⚠️ /stream требует активный топик. Создай через /topic_new &lt;name&gt;"
+            " в этом чате или запусти команду внутри форум-топика."
+        ),
         "ui.stream_mode_write_failed": "Не удалось записать конфиг",
         "ui.session_switched": "🔄 сессия: {sid}",
         "ui.session_switched_engine": "🔄 сессия {engine}: {sid}",
@@ -406,6 +456,40 @@ MESSAGES: dict[str, dict[str, str]] = {
         "tool.write_memory": "🧠 Обновляю память",
         "tool.read_skill": "📋 Читаю скилл",
         "tool.write_skill": "📋 Обновляю скилл",
+        # --- UI: virtual topics (личные слоты-проекты в приватном чате) ----
+        "ui.vt_only_in_private": (
+            "⚠️ Виртуальные топики работают только в приватном чате."
+            " В форум-группе используй обычные топики."
+        ),
+        "ui.vt_list_empty": (
+            "🗂 Пока ни одного топика.\nСоздай через <code>/topic_new &lt;name&gt;</code>."
+        ),
+        "ui.vt_list_header": "🗂 Твои топики:",
+        "ui.vt_list_active_marker": "✅",
+        "ui.vt_list_idle_marker": "▫️",
+        "ui.vt_current_active": "✅ Активный топик: <b>{name}</b>",
+        "ui.vt_current_none": (
+            "Нет активного топика. Создай: <code>/topic_new &lt;name&gt;</code>"
+            " или переключись: <code>/topic_switch &lt;name&gt;</code>."
+        ),
+        "ui.vt_invalid_name": (
+            "⚠️ Некорректное имя. Допустимо: буквы, цифры, _ и -, 1..32 символов."
+        ),
+        "ui.vt_usage_new": "Использование: <code>/topic_new &lt;name&gt;</code>",
+        "ui.vt_usage_switch": "Использование: <code>/topic_switch &lt;name&gt;</code>",
+        "ui.vt_usage_del": "Использование: <code>/topic_del &lt;name&gt;</code>",
+        "ui.vt_already_exists": "⚠️ Топик <b>{name}</b> уже существует.",
+        "ui.vt_created": "✅ Создан и активирован: <b>{name}</b>.",
+        "ui.vt_not_found": "⚠️ Топик <b>{name}</b> не найден.",
+        "ui.vt_switched": "✅ Переключился на <b>{name}</b>.",
+        "ui.vt_deleted": "🗑 Удалён <b>{name}</b>.",
+        "ui.vt_deleted_now_active": "🗑 Удалён <b>{name}</b>. Теперь активен: <b>{active}</b>.",
+        "ui.vt_deleted_no_active": (
+            "🗑 Удалён <b>{name}</b>. Нет активного топика — используй <code>/topic_new</code>"
+            " или <code>/topic_switch</code>."
+        ),
+        "ui.vt_off": "✅ Активный топик очищен.",
+        "ui.vt_already_off": "Активного топика и так нет.",
     },
 }
 

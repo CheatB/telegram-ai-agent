@@ -36,6 +36,20 @@ PUBLIC_BOT_COMMANDS: tuple[LocalizedBotCommand, ...] = (
     LocalizedBotCommand("resume", "Возобновить сохраненную сессию", "Resume a saved session"),
     LocalizedBotCommand("kill", "Остановить tmux-сессию", "Stop the tmux session"),
     LocalizedBotCommand("tui", "Открыть панель TUI", "Open the TUI panel"),
+    LocalizedBotCommand("topics", "Список виртуальных топиков", "List virtual topics"),
+    LocalizedBotCommand(
+        "topic_new",
+        "Создать виртуальный топик",
+        "Create a virtual topic",
+    ),
+    LocalizedBotCommand(
+        "topic_switch",
+        "Переключиться на топик",
+        "Switch active topic",
+    ),
+    LocalizedBotCommand("topic_del", "Удалить виртуальный топик", "Delete a virtual topic"),
+    LocalizedBotCommand("topic_off", "Выключить активный топик", "Clear active topic"),
+    LocalizedBotCommand("current", "Показать активный топик", "Show active topic"),
     LocalizedBotCommand(
         "tail",
         "Открыть панель TUI (старый алиас)",
